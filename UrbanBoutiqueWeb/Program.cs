@@ -9,12 +9,12 @@ using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connStr = BuildConnectionString(builder.Configuration)
+var connStr = DatabaseConnection.Build(builder.Configuration)
     ?? throw new InvalidOperationException(
         "No database configured. Set DATABASE_URL (Railway) or ConnectionStrings:DefaultConnection.");
 
 // Public-facing URL. Set APP_URL explicitly, or let Railway supply RAILWAY_PUBLIC_DOMAIN.
-var appUrl = ResolvePublicUrl(builder.Configuration);
+var appUrl = DatabaseConnection.ResolvePublicUrl(builder.Configuration);
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connStr));
@@ -194,41 +194,3 @@ app.MapControllers();
 app.Logger.LogInformation("Urban Boutique ready. Public URL: {AppUrl}", appUrl ?? "(not set)");
 
 app.Run();
-
-// --- Helpers ---
-static string? ResolvePublicUrl(IConfiguration config)
-{
-    // 1. Explicit override
-    var explicitUrl = Environment.GetEnvironmentVariable("APP_URL")
-                      ?? Environment.GetEnvironmentVariable("PUBLIC_URL")
-                      ?? config["Public:AppUrl"];
-    if (!string.IsNullOrWhiteSpace(explicitUrl)) return explicitUrl.TrimEnd('/');
-
-    // 2. Railway convenience variables
-    var railwayDomain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN");
-    if (!string.IsNullOrWhiteSpace(railwayDomain)) return $"https://{railwayDomain}";
-
-    var railwayStatic = Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL");
-    if (!string.IsNullOrWhiteSpace(railwayStatic)) return railwayStatic.TrimEnd('/');
-
-    return null;
-}
-
-static string? BuildConnectionString(IConfiguration config)
-{
-    // Railway/Heroku/Render style: DATABASE_URL=postgresql://user:pass@host:port/db
-    var url = Environment.GetEnvironmentVariable("DATABASE_URL");
-    if (!string.IsNullOrWhiteSpace(url))
-    {
-        var uri = new Uri(url);
-        var userInfo = uri.UserInfo.Split(':', 2);
-        var user = Uri.UnescapeDataString(userInfo[0]);
-        var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
-        var db = uri.AbsolutePath.TrimStart('/');
-        var port = uri.Port > 0 ? uri.Port : 5432;
-        return $"Host={uri.Host};Port={port};Username={user};Password={pass};Database={db};" +
-               $"SSL Mode=Require;Trust Server Certificate=true;Pooling=true";
-    }
-
-    return config.GetConnectionString("DefaultConnection");
-}

@@ -15,23 +15,68 @@ Only `UrbanBoutiqueWeb` is deployable to the cloud — the WPF apps are Windows-
 
 ---
 
-## Local development
+## Running the assessment build
 
-Prerequisites:
-- .NET 10 SDK
-- PostgreSQL 14+ running on `localhost:5432`
-- A database named `urban_boutique` (the app creates tables automatically)
+### Prerequisites
 
+| Requirement | Version | Notes |
+|---|---|---|
+| .NET SDK | **10.0** | `dotnet --version` must print `10.x` |
+| PostgreSQL | 14 or later | Listening on `localhost:5432` (default) |
+| Visual Studio 2022/2024 | *(optional)* | If the assessor prefers IDE over CLI |
+
+### Step 1 — Create the database
+Using **pgAdmin** or `psql`, run:
+```sql
+CREATE DATABASE urban_boutique;
+```
+Tables are created automatically on first launch — no manual SQL required. (The script `UrbanBoutiqueAdmin/db_setup.sql` is provided as reference only.)
+
+### Step 2 — Match the connection string
+The default credentials in every module are `postgres / 1`. If your local Postgres uses a different password, update **one** of:
+
+| Module | File |
+|---|---|
+| Admin WPF | `UrbanBoutiqueAdmin/App.config` → `connectionString` |
+| Cashier WPF | `UrbanBoutiqueCashier/App.config` → `connectionString` |
+| Web | `UrbanBoutiqueWeb/appsettings.json` → `ConnectionStrings:DefaultConnection` |
+
+Alternatively, set `URBAN_BOUTIQUE_DB` (WPF) or `DATABASE_URL` (web) in the environment.
+
+### Step 3 — Launch each module
+
+#### Admin Desktop (the main submission)
+```bash
+cd UrbanBoutiqueAdmin
+dotnet run
+```
+Login: `admin` / `admin123` (seeded on first run).
+
+#### Cashier Desktop
+```bash
+cd UrbanBoutiqueCashier
+dotnet run
+```
+
+#### Web app (optional bonus)
 ```bash
 cd UrbanBoutiqueWeb
 dotnet run
 ```
+Opens on a port shown in the terminal (e.g. `http://localhost:5050`).
 
-Then open http://localhost:5000 (port shown in terminal output).
+#### Visual Studio alternative
+Open each `.csproj` or create a solution (`dotnet sln add */*.csproj`) and press **F5**.
 
-Default admin: `admin` / `admin123`
+### Step 4 — Run the unit test suite
+```bash
+dotnet test UrbanBoutique.Tests/UrbanBoutique.Tests.csproj
+```
+Expected: **71 passed, 0 failed** in ~1 second.
 
-Connection string can be overridden in `appsettings.json` or via the `DATABASE_URL` environment variable.
+### Logs
+Every login, stock change, and rollback is recorded to
+`%LOCALAPPDATA%\UrbanBoutique\logs\urban-boutique-YYYY-MM-DD.log` — useful for debugging a black-box run.
 
 ---
 
