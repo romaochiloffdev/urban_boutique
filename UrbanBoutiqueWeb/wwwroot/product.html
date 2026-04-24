@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product — Urban Boutique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-body">
+    <nav class="top-navbar storefront-navbar">
+        <div class="logo">
+            <a href="/" style="text-decoration:none; color:inherit; display:flex; align-items:center; gap:12px;">
+                <div class="logo-icon"><i class="fas fa-store"></i></div>
+                <span>URBAN <strong>BOUTIQUE</strong></span>
+            </a>
+        </div>
+        <div class="storefront-search">
+            <div class="search-bar">
+                <input type="text" id="nav-search" placeholder="Search products...">
+                <button onclick="gotoSearch()"><i class="fas fa-search"></i></button>
+            </div>
+        </div>
+        <div class="user-profile" id="storefront-user-area">
+            <!-- populated by JS -->
+        </div>
+    </nav>
+
+    <div class="product-page">
+        <a href="/" class="back-link"><i class="fas fa-arrow-left"></i> Back to catalog</a>
+
+        <div id="product-content">
+            <div class="empty-state-box">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading product...</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        (async () => {
+            await renderStorefrontUserArea();
+            const params = new URLSearchParams(location.search);
+            const id = parseInt(params.get('id'), 10);
+            if (!id) {
+                document.getElementById('product-content').innerHTML =
+                    '<div class="empty-state-box"><i class="fas fa-exclamation-triangle"></i><p>No product selected</p></div>';
+                return;
+            }
+            await loadSingleProduct(id);
+        })();
+
+        function gotoSearch() {
+            const q = document.getElementById('nav-search').value.trim();
+            location.href = '/' + (q ? '?q=' + encodeURIComponent(q) : '');
+        }
+        document.getElementById('nav-search').addEventListener('keyup', e => {
+            if (e.key === 'Enter') gotoSearch();
+        });
+    </script>
+</body>
+</html>

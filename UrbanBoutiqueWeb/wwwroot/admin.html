@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Urban Boutique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-body">
+    <nav class="top-navbar">
+        <div class="logo">
+            <div class="logo-icon"><i class="fas fa-store"></i></div>
+            <span>URBAN <strong>ADMIN</strong></span>
+        </div>
+        <div class="user-profile">
+            <div class="avatar"><i class="fas fa-user-shield"></i></div>
+            <div class="user-info">
+                <span class="user-name" id="display-user-name">Admin</span>
+                <span class="user-role">Administrator</span>
+            </div>
+            <button class="btn-logout" onclick="logout()" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </nav>
+
+    <div class="main-container">
+        <aside class="side-nav">
+            <ul class="nav-menu">
+                <li class="active" onclick="switchTab('products', this)"><i class="fas fa-boxes-stacked"></i> <span>Inventory</span></li>
+                <li onclick="switchTab('categories', this)"><i class="fas fa-tags"></i> <span>Categories</span></li>
+                <li onclick="switchTab('users', this)"><i class="fas fa-users-cog"></i> <span>Staff</span></li>
+                <li onclick="switchTab('reports', this)"><i class="fas fa-chart-line"></i> <span>Reports</span></li>
+            </ul>
+        </aside>
+
+        <main class="content-area">
+            <!-- PRODUCTS -->
+            <div id="tab-products" class="tab-pane">
+                <div class="page-header">
+                    <div>
+                        <h2>Inventory</h2>
+                        <p class="subtitle">Manage products and stock levels</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('productModal')">
+                        <i class="fas fa-plus"></i> Add Product
+                    </button>
+                </div>
+
+                <div class="card table-card">
+                    <table class="modern-table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Category</th>
+                                <th>Variant</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="products-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- CATEGORIES -->
+            <div id="tab-categories" class="tab-pane" style="display:none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Categories</h2>
+                        <p class="subtitle">Organize your products</p>
+                    </div>
+                </div>
+                <div class="grid-2-col">
+                    <div class="card">
+                        <h3><i class="fas fa-folder-plus text-accent"></i> Add Category</h3>
+                        <form id="category-form" style="margin-top:16px;">
+                            <div class="form-group">
+                                <label>Category Name</label>
+                                <input type="text" id="new-cat-name" placeholder="e.g. Winter Collection" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save"></i> Save Category
+                            </button>
+                        </form>
+                    </div>
+                    <div class="card table-card">
+                        <table class="modern-table">
+                            <thead><tr><th>Existing Categories</th></tr></thead>
+                            <tbody id="categories-table"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- USERS -->
+            <div id="tab-users" class="tab-pane" style="display:none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Staff</h2>
+                        <p class="subtitle">Manage accounts and permissions</p>
+                    </div>
+                    <button class="btn btn-primary" onclick="openModal('userModal')">
+                        <i class="fas fa-user-plus"></i> Add Staff
+                    </button>
+                </div>
+                <div class="card table-card">
+                    <table class="modern-table">
+                        <thead><tr><th>ID</th><th>Username</th><th>Role</th></tr></thead>
+                        <tbody id="users-table"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- REPORTS -->
+            <div id="tab-reports" class="tab-pane" style="display:none;">
+                <div class="page-header">
+                    <div>
+                        <h2>Reports</h2>
+                        <p class="subtitle">Store performance and insights</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card success-grad">
+                        <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
+                        <div class="stat-details">
+                            <p>Today's Revenue</p>
+                            <h3 id="today-sales">$0.00</h3>
+                        </div>
+                    </div>
+                    <div class="stat-card primary-grad">
+                        <div class="stat-icon"><i class="fas fa-receipt"></i></div>
+                        <div class="stat-details">
+                            <p>Today's Transactions</p>
+                            <h3 id="today-count">0</h3>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card table-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-exclamation-triangle text-danger"></i> Dead Stock — 30+ days unsold</h3>
+                    </div>
+                    <table class="modern-table">
+                        <thead>
+                            <tr><th>Product</th><th>Category</th><th>Variant</th><th>Stock</th><th>Price</th></tr>
+                        </thead>
+                        <tbody id="deadstock-table"></tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="productModal" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3><i class="fas fa-box text-accent"></i> Add Product</h3>
+                <button class="close-btn" onclick="closeModal('productModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <form id="product-form" class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group span-2">
+                        <label>Product Name</label>
+                        <input type="text" id="p-name" placeholder="e.g. Classic Denim Jacket" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Price ($)</label>
+                        <input type="number" id="p-price" step="0.01" min="0.01" placeholder="0.00" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Category</label>
+                        <select id="p-cat" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Size</label>
+                        <select id="p-size" required>
+                            <option value="S">Small (S)</option>
+                            <option value="M" selected>Medium (M)</option>
+                            <option value="L">Large (L)</option>
+                            <option value="XL">Extra Large (XL)</option>
+                            <option value="One Size">One Size</option>
+                        </select>
+                    </div>
+                    <div class="form-group span-2">
+                        <label>Color</label>
+                        <div class="color-picker">
+                            <div class="swatch-grid" id="color-swatches">
+                                <!-- populated by JS -->
+                            </div>
+                            <div class="color-custom">
+                                <input type="color" id="p-color-custom" value="#3b82f6" title="Pick custom color">
+                                <input type="text" id="p-color" placeholder="Color name (e.g. Navy Blue)" required>
+                                <span class="color-preview" id="color-preview" style="background:#3b82f6;"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group span-2">
+                        <label>Initial Stock</label>
+                        <input type="number" id="p-stock" min="0" placeholder="10" required>
+                    </div>
+                </div>
+                <div class="modal-footer" style="margin:24px -24px -24px; padding: 18px 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('productModal')">Cancel</button>
+                    <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- User Modal -->
+    <div id="userModal" class="modal-overlay">
+        <div class="modal-box modal-sm">
+            <div class="modal-header">
+                <h3><i class="fas fa-user text-accent"></i> Manage Staff</h3>
+                <button class="close-btn" onclick="closeModal('userModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="u-name" placeholder="staff_name">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="u-pass" placeholder="••••••••">
+                </div>
+                <div class="form-group mb-20">
+                    <label>Role</label>
+                    <select id="u-role">
+                        <option value="Sales Staff">Sales Staff</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
+                <div class="flex-gap">
+                    <button class="btn btn-primary w-100" onclick="addUser()"><i class="fas fa-user-plus"></i> Add</button>
+                    <button class="btn btn-warning w-100" onclick="resetUser()" title="Resets password for existing user"><i class="fas fa-key"></i> Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        // Logout from admin dashboard returns to the dedicated admin login page.
+        window.logout = async function () {
+            await api('/auth/logout', { method: 'POST' });
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            location.href = '/admin-login.html';
+        };
+
+        (async () => {
+            const me = await whoAmI();
+            if (!me || me.role !== 'Admin') {
+                location.href = '/admin-login.html';
+                return;
+            }
+            const nameEl = document.getElementById('display-user-name');
+            if (nameEl) nameEl.textContent = me.username;
+            loadAdminData();
+        })();
+    </script>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cashier — Urban Boutique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="app-body">
+    <!-- Inline cashier login gate -->
+    <div id="cashier-login-gate" class="login-body" style="display:none; position:fixed; inset:0; z-index:200; align-items:center; justify-content:center;">
+        <div class="login-container">
+            <div style="text-align:center; margin-bottom:24px;">
+                <div class="logo-icon" style="margin: 0 auto 14px; width:56px; height:56px; font-size:1.5rem;">
+                    <i class="fas fa-cash-register"></i>
+                </div>
+                <h2>CASHIER <span style="color:var(--accent);">TERMINAL</span></h2>
+                <p class="subtitle">Staff sign-in required</p>
+            </div>
+
+            <div id="cashier-gate-error" class="error-msg" style="display:none;"></div>
+
+            <form id="cashier-gate-form">
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="cgate-username" autocomplete="username" required autofocus>
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="cgate-password" autocomplete="current-password" required>
+                </div>
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-lock-open"></i> Access Terminal
+                </button>
+            </form>
+
+            <div style="text-align:center; margin-top:20px;">
+                <a href="/" style="color:var(--text-muted); font-size:0.85rem; text-decoration:none;">
+                    <i class="fas fa-arrow-left"></i> Back to storefront
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div id="cashier-app" style="display:none; flex-direction:column; height:100vh; overflow:hidden;">
+    <nav class="top-navbar">
+        <div class="logo">
+            <div class="logo-icon"><i class="fas fa-cash-register"></i></div>
+            <span>URBAN <strong>CASHIER</strong></span>
+        </div>
+        <div class="user-profile">
+            <div class="avatar"><i class="fas fa-user"></i></div>
+            <div class="user-info">
+                <span class="user-name" id="display-user-name">Cashier</span>
+                <span class="user-role">Sales Staff</span>
+            </div>
+            <button class="btn-logout" onclick="logout()" title="Sign out"><i class="fas fa-sign-out-alt"></i></button>
+        </div>
+    </nav>
+
+    <div class="cashier-layout">
+        <!-- Products -->
+        <section class="cashier-products-panel">
+            <div class="cashier-panel-header">
+                <h3><i class="fas fa-boxes-stacked text-accent"></i> Available Products</h3>
+            </div>
+            <div class="cashier-search">
+                <input type="text" id="search-input" placeholder="Search by name or category...">
+                <button class="btn btn-primary" onclick="searchProducts()"><i class="fas fa-search"></i></button>
+            </div>
+            <div class="cashier-table-wrap">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Size</th>
+                            <th>Color</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cashier-products"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Cart -->
+        <aside class="cashier-cart-panel">
+            <div class="cashier-panel-header">
+                <h3><i class="fas fa-shopping-cart text-accent"></i> Current Order</h3>
+            </div>
+            <div class="cashier-table-wrap">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Subtotal</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="cart-table">
+                        <tr><td colspan="4" class="empty-state">Cart is empty</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="cart-summary">
+                <div class="cart-total-row">
+                    <span>Total</span>
+                    <strong id="cart-total">$0.00</strong>
+                </div>
+                <button class="btn btn-success w-100" style="padding: 14px; font-size: 1rem;" onclick="checkout()">
+                    <i class="fas fa-check-circle"></i> Complete Checkout
+                </button>
+            </div>
+        </aside>
+    </div>
+
+    </div><!-- /cashier-app -->
+
+    <script src="js/app.js"></script>
+    <script>
+        const cgate = document.getElementById('cashier-login-gate');
+        const cashierApp = document.getElementById('cashier-app');
+        const cgateErr = document.getElementById('cashier-gate-error');
+
+        async function bootstrapCashier() {
+            const me = await whoAmI();
+            const allowed = me && (me.role === 'Sales Staff' || me.role === 'Admin');
+            if (allowed) {
+                cgate.style.display = 'none';
+                cashierApp.style.display = 'flex';
+                const nameEl = document.getElementById('display-user-name');
+                if (nameEl) nameEl.textContent = me.username;
+                loadCashierProducts();
+            } else {
+                if (me) {
+                    await api('/auth/logout', { method: 'POST' });
+                    localStorage.removeItem('userRole');
+                    localStorage.removeItem('userName');
+                }
+                cgate.style.display = 'flex';
+                cashierApp.style.display = 'none';
+            }
+        }
+
+        document.getElementById('cashier-gate-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            cgateErr.style.display = 'none';
+            const u = document.getElementById('cgate-username').value.trim();
+            const p = document.getElementById('cgate-password').value;
+
+            const { ok, data } = await api('/auth/login', {
+                method: 'POST', body: JSON.stringify({ username: u, password: p })
+            });
+
+            if (!ok || !data?.success) {
+                cgateErr.textContent = data?.message || 'Login failed';
+                cgateErr.style.display = 'block';
+                return;
+            }
+            if (data.role !== 'Sales Staff' && data.role !== 'Admin') {
+                await api('/auth/logout', { method: 'POST' });
+                cgateErr.textContent = `Access denied for role "${data.role}". Staff credentials required.`;
+                cgateErr.style.display = 'block';
+                return;
+            }
+
+            localStorage.setItem('userRole', data.role);
+            localStorage.setItem('userName', data.username);
+            await bootstrapCashier();
+        });
+
+        window.logout = async function () {
+            await api('/auth/logout', { method: 'POST' });
+            localStorage.removeItem('userRole');
+            localStorage.removeItem('userName');
+            document.getElementById('cgate-username').value = '';
+            document.getElementById('cgate-password').value = '';
+            cgate.style.display = 'flex';
+            cashierApp.style.display = 'none';
+            setTimeout(() => document.getElementById('cgate-username').focus(), 50);
+        };
+
+        bootstrapCashier();
+    </script>
+</body>
+</html>

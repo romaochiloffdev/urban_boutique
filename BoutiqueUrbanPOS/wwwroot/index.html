@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boutique Urban POS — System Overview</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <nav class="nav">
+        <div class="nav-inner">
+            <div class="brand">
+                <div class="brand-icon"><i class="fas fa-store"></i></div>
+                <div>
+                    <div class="brand-title">URBAN <strong>BOUTIQUE</strong></div>
+                    <div class="brand-sub">POS System Overview</div>
+                </div>
+            </div>
+            <a class="btn btn-primary" href="#modules"><i class="fas fa-cube"></i> View Modules</a>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+        <div class="hero-inner">
+            <span class="pill"><i class="fas fa-bolt"></i> Urban Style POS System</span>
+            <h1>Modern POS for small fashion boutiques</h1>
+            <p class="lead">A unified inventory, sales and staff-management system.
+                Web dashboard, cashier terminal and an administrator panel — all sharing one PostgreSQL database.</p>
+
+            <div class="hero-actions">
+                <a class="btn btn-primary btn-lg" href="#modules">
+                    <i class="fas fa-arrow-right"></i> Explore Modules
+                </a>
+                <a class="btn btn-ghost btn-lg" href="#architecture">
+                    <i class="fas fa-sitemap"></i> Architecture
+                </a>
+            </div>
+        </div>
+
+        <div class="hero-badges">
+            <div class="badge-item"><i class="fas fa-lock text-accent"></i><span>Session auth + PBKDF2</span></div>
+            <div class="badge-item"><i class="fas fa-database text-accent"></i><span>PostgreSQL + EF Core</span></div>
+            <div class="badge-item"><i class="fas fa-shield-halved text-accent"></i><span>Transactional checkout</span></div>
+            <div class="badge-item"><i class="fas fa-mobile-screen text-accent"></i><span>Responsive UI</span></div>
+        </div>
+    </header>
+
+    <!-- MODULES -->
+    <section id="modules" class="section">
+        <div class="section-head">
+            <h2>System Modules</h2>
+            <p>Four coordinated applications built around a single schema</p>
+        </div>
+
+        <div class="card-grid">
+            <div class="module-card">
+                <div class="module-icon grad-accent"><i class="fas fa-user-shield"></i></div>
+                <h3>Admin (WPF)</h3>
+                <p>Desktop administrator panel — manage inventory, staff accounts and generate reports.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Product & variant CRUD</li>
+                    <li><i class="fas fa-check"></i> Low stock alerts</li>
+                    <li><i class="fas fa-check"></i> Dead-stock reports</li>
+                    <li><i class="fas fa-check"></i> Staff management</li>
+                </ul>
+                <code class="tech">UrbanBoutiqueAdmin · WPF · EF Core</code>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon grad-success"><i class="fas fa-cash-register"></i></div>
+                <h3>Cashier (WPF)</h3>
+                <p>Front-office terminal for sales staff — safe transactional checkout with row-level locking.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Product search</li>
+                    <li><i class="fas fa-check"></i> Shopping cart</li>
+                    <li><i class="fas fa-check"></i> Atomic checkout</li>
+                    <li><i class="fas fa-check"></i> Sale + SaleItem records</li>
+                </ul>
+                <code class="tech">UrbanBoutiqueCashier · WPF · Npgsql</code>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon grad-primary"><i class="fas fa-globe"></i></div>
+                <h3>Web Dashboard</h3>
+                <p>ASP.NET Core web application exposing secure APIs, storefront and role-gated admin/cashier pages.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Session-based auth</li>
+                    <li><i class="fas fa-check"></i> Admin + Cashier UI</li>
+                    <li><i class="fas fa-check"></i> Public storefront</li>
+                    <li><i class="fas fa-check"></i> REST API</li>
+                </ul>
+                <code class="tech">UrbanBoutiqueWeb · ASP.NET Core 10</code>
+            </div>
+
+            <div class="module-card">
+                <div class="module-icon grad-warning"><i class="fas fa-database"></i></div>
+                <h3>PostgreSQL</h3>
+                <p>Single database schema shared by every module. Code-first migrations via EF Core.</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check"></i> Users</li>
+                    <li><i class="fas fa-check"></i> Products + Variants</li>
+                    <li><i class="fas fa-check"></i> Sales + SaleItems</li>
+                    <li><i class="fas fa-check"></i> Categories</li>
+                </ul>
+                <code class="tech">urban_boutique · PostgreSQL</code>
+            </div>
+        </div>
+    </section>
+
+    <!-- ARCHITECTURE -->
+    <section id="architecture" class="section section-alt">
+        <div class="section-head">
+            <h2>Architecture</h2>
+            <p>How the modules share data</p>
+        </div>
+
+        <div class="arch">
+            <div class="arch-top">
+                <div class="arch-node">
+                    <i class="fas fa-user-shield"></i>
+                    <span>Admin WPF</span>
+                </div>
+                <div class="arch-node">
+                    <i class="fas fa-cash-register"></i>
+                    <span>Cashier WPF</span>
+                </div>
+                <div class="arch-node">
+                    <i class="fas fa-globe"></i>
+                    <span>Web App</span>
+                </div>
+            </div>
+
+            <div class="arch-lines">
+                <div class="arch-line"></div>
+                <div class="arch-line"></div>
+                <div class="arch-line"></div>
+            </div>
+
+            <div class="arch-db">
+                <i class="fas fa-database"></i>
+                <div>
+                    <strong>PostgreSQL</strong>
+                    <small>urban_boutique</small>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2026 Boutique Urban POS System · Ochilov Ilyosjon (B2300540)</p>
+    </footer>
+</body>
+</html>

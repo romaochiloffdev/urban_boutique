@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Sign In — Urban Boutique</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-body admin-login-body">
+    <div class="admin-login-shell">
+        <!-- LEFT: branding panel -->
+        <aside class="admin-login-aside">
+            <div class="admin-aside-logo">
+                <div class="logo-icon" style="width:48px; height:48px; font-size:1.2rem;">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <div>
+                    <div style="font-weight:500; font-size:0.85rem; opacity:0.85;">URBAN BOUTIQUE</div>
+                    <div style="font-weight:800; font-size:1.2rem;">ADMIN PORTAL</div>
+                </div>
+            </div>
+
+            <div class="admin-aside-hero">
+                <h1>Secure<br>administrator<br>access.</h1>
+                <p>Authorized personnel only. Manage inventory, staff and view reports for the entire Urban Boutique chain.</p>
+            </div>
+
+            <ul class="admin-features">
+                <li><i class="fas fa-shield-halved"></i> Session-based authentication</li>
+                <li><i class="fas fa-lock"></i> PBKDF2 password hashing</li>
+                <li><i class="fas fa-clock-rotate-left"></i> 4-hour idle timeout</li>
+            </ul>
+
+            <div class="admin-aside-footer">
+                <a href="/"><i class="fas fa-arrow-left"></i> Back to storefront</a>
+            </div>
+        </aside>
+
+        <!-- RIGHT: form -->
+        <main class="admin-login-main">
+            <div class="admin-login-card">
+                <div class="admin-login-head">
+                    <h2>Welcome back</h2>
+                    <p class="subtitle">Sign in to the administrator panel</p>
+                </div>
+
+                <div id="error-message" class="error-msg" style="display:none;"></div>
+
+                <form id="admin-login-form">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <div class="input-icon">
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="username" placeholder="admin" autocomplete="username" autofocus required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <div class="input-icon">
+                            <i class="fas fa-lock"></i>
+                            <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" required>
+                            <button type="button" class="toggle-visibility" onclick="togglePassword()" title="Show password">
+                                <i class="fas fa-eye" id="pwd-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 btn-submit">
+                        <i class="fas fa-lock-open"></i> Sign In to Admin Panel
+                    </button>
+                </form>
+
+                <div class="admin-login-footer">
+                    <div class="login-hint">
+                        Default credentials: <code>admin</code> / <code>admin123</code>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        function togglePassword() {
+            const p = document.getElementById('password');
+            const eye = document.getElementById('pwd-eye');
+            if (p.type === 'password') { p.type = 'text'; eye.className = 'fas fa-eye-slash'; }
+            else { p.type = 'password'; eye.className = 'fas fa-eye'; }
+        }
+
+        const errEl = document.getElementById('error-message');
+        const form = document.getElementById('admin-login-form');
+        const submitBtn = form.querySelector('.btn-submit');
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            errEl.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing in…';
+
+            const u = document.getElementById('username').value.trim();
+            const p = document.getElementById('password').value;
+
+            const { ok, data } = await api('/auth/login', {
+                method: 'POST',
+                body: JSON.stringify({ username: u, password: p })
+            });
+
+            const show = (msg) => {
+                errEl.textContent = msg;
+                errEl.style.display = 'block';
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fas fa-lock-open"></i> Sign In to Admin Panel';
+            };
+
+            if (!ok || !data?.success) return show(data?.message || 'Invalid credentials');
+            if (data.role !== 'Admin') {
+                await api('/auth/logout', { method: 'POST' });
+                return show(`Access denied for role "${data.role}". Admin credentials required.`);
+            }
+
+            localStorage.setItem('userRole', data.role);
+            localStorage.setItem('userName', data.username);
+            location.href = '/admin';
+        });
+
+        // If already signed in as Admin, skip the form.
+        (async () => {
+            const me = await whoAmI();
+            if (me && me.role === 'Admin') location.href = '/admin';
+        })();
+    </script>
+</body>
+</html>
