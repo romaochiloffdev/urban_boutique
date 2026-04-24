@@ -1,0 +1,30 @@
+# Keep the Docker build context lean — only the web project is built.
+**/bin/
+**/obj/
+**/.vs/
+**/.vscode/
+**/.idea/
+**/*.user
+**/*.suo
+**/*.pdb
+**/node_modules/
+.git/
+.github/
+.claude/
+
+# WPF desktop apps aren't built in this container.
+UrbanBoutiqueAdmin/
+UrbanBoutiqueCashier/
+BoutiqueUrbanPOS/
+
+# Docs / binaries
+*.pdf
+*.md
+!UrbanBoutiqueWeb/**/*.md
+
+# Local dev overrides
+**/appsettings.Development.json
+**/appsettings.Local.json
+.env
+.env.*
+secrets.json

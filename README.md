@@ -41,7 +41,9 @@ Connection string can be overridden in `appsettings.json` or via the `DATABASE_U
 
 1. Go to https://railway.app → **New Project** → **Deploy from GitHub repo**
 2. Choose this repository (`urban_boutique`)
-3. When prompted for the service, **set "Root Directory" to `UrbanBoutiqueWeb`** so Railway uses the Dockerfile inside that folder.
+3. **No configuration needed** — Railway auto-detects the root `Dockerfile` and `railway.json`, which build only the `UrbanBoutiqueWeb` project. Leave *Root Directory* empty.
+
+> If Railway tries to use its *Railpack* auto-builder and misdetects the stack (e.g. "PHP" error), this is because the Dockerfile wasn't picked up. Make sure you pulled the latest commit — the repo root now has `Dockerfile` and `railway.json` that explicitly tell Railway to use Docker.
 
 ### 2 — Add a PostgreSQL service
 
