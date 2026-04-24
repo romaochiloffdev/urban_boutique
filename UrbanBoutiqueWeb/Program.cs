@@ -13,6 +13,9 @@ var connStr = BuildConnectionString(builder.Configuration)
     ?? throw new InvalidOperationException(
         "No database configured. Set DATABASE_URL (Railway) or ConnectionStrings:DefaultConnection.");
 
+// Public-facing URL. Set APP_URL explicitly, or let Railway supply RAILWAY_PUBLIC_DOMAIN.
+var appUrl = ResolvePublicUrl(builder.Configuration);
+
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connStr));
 
@@ -142,11 +145,38 @@ app.MapGet("/admin-login", (HttpContext ctx) => { ctx.Response.Redirect("/admin-
 // Health check for Railway.
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 
+// Public runtime config for the frontend.
+app.MapGet("/api/config", () => Results.Ok(new {
+    appUrl,
+    environment = app.Environment.EnvironmentName
+}));
+
 app.MapControllers();
+
+// Log the resolved URL on startup.
+app.Logger.LogInformation("Urban Boutique ready. Public URL: {AppUrl}", appUrl ?? "(not set)");
 
 app.Run();
 
 // --- Helpers ---
+static string? ResolvePublicUrl(IConfiguration config)
+{
+    // 1. Explicit override
+    var explicitUrl = Environment.GetEnvironmentVariable("APP_URL")
+                      ?? Environment.GetEnvironmentVariable("PUBLIC_URL")
+                      ?? config["Public:AppUrl"];
+    if (!string.IsNullOrWhiteSpace(explicitUrl)) return explicitUrl.TrimEnd('/');
+
+    // 2. Railway convenience variables
+    var railwayDomain = Environment.GetEnvironmentVariable("RAILWAY_PUBLIC_DOMAIN");
+    if (!string.IsNullOrWhiteSpace(railwayDomain)) return $"https://{railwayDomain}";
+
+    var railwayStatic = Environment.GetEnvironmentVariable("RAILWAY_STATIC_URL");
+    if (!string.IsNullOrWhiteSpace(railwayStatic)) return railwayStatic.TrimEnd('/');
+
+    return null;
+}
+
 static string? BuildConnectionString(IConfiguration config)
 {
     // Railway/Heroku/Render style: DATABASE_URL=postgresql://user:pass@host:port/db

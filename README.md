@@ -78,7 +78,11 @@ Open the generated Railway URL — you should see the storefront. Admin panel li
 | `PORT` | no | `8080` | HTTP port (auto-provided by Railway) |
 | `ADMIN_USERNAME` | no | `admin` | Seeded admin username |
 | `ADMIN_PASSWORD` | no | `admin123` | Seeded admin password |
+| `APP_URL` | no | auto | Public site URL (e.g. `https://urban-boutique.up.railway.app`). Used by `/api/config` so the frontend knows its canonical origin |
+| `RAILWAY_PUBLIC_DOMAIN` | no | — | Auto-set by Railway. Used as fallback for `APP_URL` when not explicitly provided |
 | `ASPNETCORE_ENVIRONMENT` | no | `Production` | Set to `Development` to disable forced HTTPS cookies |
+
+Runtime config is exposed at **`GET /api/config`** (returns `{"appUrl":"...", "environment":"Production"}`), so the frontend can reach the public URL without hard-coding it.
 
 For local development you can still use `ConnectionStrings:DefaultConnection` in `appsettings.json` — `DATABASE_URL` takes precedence when present.
 
