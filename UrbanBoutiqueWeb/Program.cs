@@ -81,30 +81,67 @@ using (var scope = app.Services.CreateScope())
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Username"" ON ""Users"" (""Username"");
     ");
 
-    var adminUser = Environment.GetEnvironmentVariable("ADMIN_USERNAME")
+    // Admin seeding — environment wins, with safe fallbacks.
+    var envAdminUser = Environment.GetEnvironmentVariable("ADMIN_USERNAME");
+    var envAdminPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD");
+    var adminUser = envAdminUser
                     ?? builder.Configuration["Security:DefaultAdminUsername"]
                     ?? "admin";
-    var adminPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+    var adminPass = envAdminPass
                     ?? builder.Configuration["Security:DefaultAdminPassword"]
                     ?? "admin123";
 
-    if (!db.Users.Any())
+    var existingAdmin = db.Users.FirstOrDefault(u => u.Username == adminUser);
+    if (existingAdmin == null)
     {
+        // User with the configured username doesn't exist yet — create it.
         db.Users.Add(new User {
             Username = adminUser,
             Password = AuthController.HashPassword(adminPass),
             Role = "Admin"
         });
         db.SaveChanges();
+        app.Logger.LogInformation("Seeded admin user '{User}' (source: {Source}).",
+            adminUser,
+            envAdminUser != null ? "ADMIN_USERNAME env" : "default config");
     }
     else
     {
-        // Upgrade legacy SHA256 hashes (pre-PBKDF2) to the new format.
-        var existingAdmin = db.Users.FirstOrDefault(u => u.Username == adminUser);
-        if (existingAdmin != null && !existingAdmin.Password.StartsWith("pbkdf2$"))
+        var shouldReset = false;
+        var reason = "";
+
+        // 1. Legacy SHA256 hash — always upgrade to PBKDF2.
+        if (!existingAdmin.Password.StartsWith("pbkdf2$"))
+        {
+            shouldReset = true;
+            reason = "legacy hash upgrade";
+        }
+        // 2. ADMIN_PASSWORD env var explicitly set — always re-seed so that
+        //    updating the Railway variable + redeploy actually changes login.
+        else if (envAdminPass != null && !AuthController.VerifyPassword(adminPass, existingAdmin.Password))
+        {
+            shouldReset = true;
+            reason = "ADMIN_PASSWORD env changed";
+        }
+        // 3. ADMIN_FORCE_RESET=true — emergency override.
+        else if (string.Equals(Environment.GetEnvironmentVariable("ADMIN_FORCE_RESET"), "true",
+                               StringComparison.OrdinalIgnoreCase))
+        {
+            shouldReset = true;
+            reason = "ADMIN_FORCE_RESET=true";
+        }
+
+        if (shouldReset)
         {
             existingAdmin.Password = AuthController.HashPassword(adminPass);
+            existingAdmin.Role = "Admin";
             db.SaveChanges();
+            app.Logger.LogInformation("Reset admin '{User}' password ({Reason}).",
+                adminUser, reason);
+        }
+        else
+        {
+            app.Logger.LogInformation("Admin '{User}' already up to date.", adminUser);
         }
     }
 
