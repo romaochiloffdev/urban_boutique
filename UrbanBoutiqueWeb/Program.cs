@@ -1,19 +1,24 @@
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.EntityFrameworkCore;
 using UrbanBoutiqueWeb.Data;
 using UrbanBoutiqueWeb.Controllers;
+using System;
 using System.Linq;
 
 var builder = WebApplication.CreateBuilder(args);
 
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? "Host=localhost;Username=postgres;Password=1;Database=urban_boutique";
+var connStr = BuildConnectionString(builder.Configuration)
+    ?? throw new InvalidOperationException(
+        "No database configured. Set DATABASE_URL (Railway) or ConnectionStrings:DefaultConnection.");
 
 builder.Services.AddControllers();
 builder.Services.AddDbContext<AppDbContext>(options => options.UseNpgsql(connStr));
 
 builder.Services.AddDistributedMemoryCache();
+
+var isProd = !builder.Environment.IsDevelopment();
 builder.Services.AddSession(options =>
 {
     options.IdleTimeout = TimeSpan.FromHours(4);
@@ -21,9 +26,20 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
     options.Cookie.Name = "UrbanBoutique.Session";
     options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = isProd ? CookieSecurePolicy.Always : CookieSecurePolicy.SameAsRequest;
+});
+
+// Honor X-Forwarded-* when deployed behind a reverse proxy (Railway, Nginx, etc.).
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
+
+app.UseForwardedHeaders();
 
 // Seed database & patch any missing tables (for upgrades from older schema)
 using (var scope = app.Services.CreateScope())
@@ -62,8 +78,12 @@ using (var scope = app.Services.CreateScope())
         CREATE UNIQUE INDEX IF NOT EXISTS ""IX_Users_Username"" ON ""Users"" (""Username"");
     ");
 
-    var adminUser = builder.Configuration["Security:DefaultAdminUsername"] ?? "admin";
-    var adminPass = builder.Configuration["Security:DefaultAdminPassword"] ?? "admin123";
+    var adminUser = Environment.GetEnvironmentVariable("ADMIN_USERNAME")
+                    ?? builder.Configuration["Security:DefaultAdminUsername"]
+                    ?? "admin";
+    var adminPass = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+                    ?? builder.Configuration["Security:DefaultAdminPassword"]
+                    ?? "admin123";
 
     if (!db.Users.Any())
     {
@@ -76,7 +96,7 @@ using (var scope = app.Services.CreateScope())
     }
     else
     {
-        // Upgrade legacy SHA256 hashes (pre-PBKDF2) to the new format by resetting default admin.
+        // Upgrade legacy SHA256 hashes (pre-PBKDF2) to the new format.
         var existingAdmin = db.Users.FirstOrDefault(u => u.Username == adminUser);
         if (existingAdmin != null && !existingAdmin.Password.StartsWith("pbkdf2$"))
         {
@@ -101,8 +121,7 @@ app.UseStaticFiles();
 
 app.UseSession();
 
-// Session-aware redirects: unauthenticated users see the dedicated login page,
-// authenticated admins/staff go straight to their dashboard.
+// Session-aware redirects.
 app.MapGet("/admin", (HttpContext ctx) =>
 {
     var role = ctx.Session.GetString("Role");
@@ -120,6 +139,29 @@ app.MapGet("/cashier", (HttpContext ctx) =>
 app.MapGet("/login", (HttpContext ctx) => { ctx.Response.Redirect("/login.html"); return Task.CompletedTask; });
 app.MapGet("/admin-login", (HttpContext ctx) => { ctx.Response.Redirect("/admin-login.html"); return Task.CompletedTask; });
 
+// Health check for Railway.
+app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+
 app.MapControllers();
 
 app.Run();
+
+// --- Helpers ---
+static string? BuildConnectionString(IConfiguration config)
+{
+    // Railway/Heroku/Render style: DATABASE_URL=postgresql://user:pass@host:port/db
+    var url = Environment.GetEnvironmentVariable("DATABASE_URL");
+    if (!string.IsNullOrWhiteSpace(url))
+    {
+        var uri = new Uri(url);
+        var userInfo = uri.UserInfo.Split(':', 2);
+        var user = Uri.UnescapeDataString(userInfo[0]);
+        var pass = userInfo.Length > 1 ? Uri.UnescapeDataString(userInfo[1]) : "";
+        var db = uri.AbsolutePath.TrimStart('/');
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        return $"Host={uri.Host};Port={port};Username={user};Password={pass};Database={db};" +
+               $"SSL Mode=Require;Trust Server Certificate=true;Pooling=true";
+    }
+
+    return config.GetConnectionString("DefaultConnection");
+}
